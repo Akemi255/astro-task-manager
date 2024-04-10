@@ -1,0 +1,227 @@
+<main>
+  <div>
+    <h1>Crear tarea</h1>
+    <input
+      type="text"
+      id="tareaInput"
+      placeholder="Agregar nueva tarea"
+      disabled
+    />
+  </div>
+  <section class="listaTareas">
+    <ul id="listaTareas" class="lista-tareas"></ul>
+  </section>
+</main>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const tareaInput = document.getElementById(
+      "tareaInput"
+    ) as HTMLInputElement;
+    const listaTareas = document.getElementById(
+      "listaTareas"
+    ) as HTMLUListElement;
+
+    cargarTareas();
+
+    tareaInput.addEventListener("keyup", function (event: KeyboardEvent) {
+      if (event.keyCode === 13) {
+        const tareaTexto = tareaInput.value.trim();
+        if (tareaTexto !== "") {
+          agregarTarea(tareaTexto, false); // Inicialmente la tarea no está completada
+          tareaInput.value = "";
+          guardarTarea({ texto: tareaTexto, completada: false });
+        }
+      }
+    });
+
+    function agregarTarea(texto: string, completada: boolean): void {
+      const nuevaTarea = document.createElement("li");
+      nuevaTarea.classList.add("tarjeta-tarea");
+
+      const tareaTexto = document.createElement("span");
+      tareaTexto.textContent = texto;
+      nuevaTarea.appendChild(tareaTexto);
+
+      if (completada) {
+        nuevaTarea.classList.add("completada");
+      }
+
+      const botonesContainer = document.createElement("div");
+      botonesContainer.classList.add("botones-container");
+
+      const botonEliminar = document.createElement("button");
+      botonEliminar.textContent = "Eliminar";
+      botonEliminar.classList.add("btn-eliminar");
+      botonEliminar.addEventListener("click", function () {
+        listaTareas.removeChild(nuevaTarea);
+        eliminarTarea(texto);
+      });
+      botonesContainer.appendChild(botonEliminar);
+
+      const botonCompletar = document.createElement("button");
+      botonCompletar.textContent = completada
+        ? "Deshacer"
+        : "Marcar como completada";
+      botonCompletar.classList.add("btn-completar");
+      botonCompletar.addEventListener("click", function () {
+        completada = !completada;
+        nuevaTarea.classList.toggle("completada");
+        botonCompletar.textContent = completada
+          ? "Deshacer"
+          : "Marcar como completada";
+        actualizarTarea({ texto, completada });
+      });
+      botonesContainer.appendChild(botonCompletar);
+
+      const botonEditar = document.createElement("button");
+      botonEditar.textContent = "Editar";
+      botonEditar.classList.add("btn-editar");
+      botonEditar.addEventListener("click", function () {
+        const nuevoTexto = prompt("Editar tarea", texto);
+        if (nuevoTexto && nuevoTexto.trim() !== "") {
+          texto = nuevoTexto.trim();
+          tareaTexto.textContent = texto;
+          actualizarTarea({ texto, completada });
+        }
+      });
+      botonesContainer.appendChild(botonEditar);
+
+      nuevaTarea.appendChild(botonesContainer);
+      listaTareas.appendChild(nuevaTarea);
+    }
+
+    function cargarTareas(): void {
+      const tareasGuardadas = localStorage.getItem("tareas");
+      if (tareasGuardadas) {
+        const tareas: { texto: string; completada: boolean }[] =
+          JSON.parse(tareasGuardadas);
+        tareas.forEach(function (tarea) {
+          if (!tarea.completada) {
+            agregarTarea(tarea.texto, tarea.completada);
+          }
+        });
+      }
+    }
+
+    function guardarTarea(tarea: { texto: string; completada: boolean }): void {
+      let tareas: { texto: string; completada: boolean }[] = JSON.parse(
+        localStorage.getItem("tareas") || "[]"
+      );
+      tareas.push(tarea);
+      localStorage.setItem("tareas", JSON.stringify(tareas));
+    }
+
+    function eliminarTarea(texto: string): void {
+      let tareas: { texto: string; completada: boolean }[] = JSON.parse(
+        localStorage.getItem("tareas") || "[]"
+      );
+      tareas = tareas.filter(
+        (t: { texto: string; completada: boolean }) => t.texto !== texto
+      );
+      localStorage.setItem("tareas", JSON.stringify(tareas));
+    }
+
+    function actualizarTarea(tarea: {
+      texto: string;
+      completada: boolean;
+    }): void {
+      let tareas: { texto: string; completada: boolean }[] = JSON.parse(
+        localStorage.getItem("tareas") || "[]"
+      );
+      const index = tareas.findIndex(
+        (t: { texto: string; completada: boolean }) => t.texto === tarea.texto
+      );
+      if (index !== -1) {
+        tareas[index].texto = tarea.texto;
+        tareas[index].completada = tarea.completada;
+        localStorage.setItem("tareas", JSON.stringify(tareas));
+        window.location.reload();
+      }
+    }
+
+    const styles: string = `
+              .listaTareas {
+                list-style: none;
+                padding: 0;
+                display: grid;
+                grid-auto-flow: column; /* Muestra las tarjetas en una sola fila */
+                gap: 10px;
+              }
+        
+              .tarjeta-tarea {
+                background-color: #f0f0f0; /* Color de fondo para todas las tarjetas */
+                border-radius: 10px;
+                padding: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                transition: transform 0.3s ease;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: auto; /* Cambia el ancho a automático */
+                margin-bottom: 10px; /* Espacio entre cada tarjeta */
+              }
+    
+              .botones-container {
+                display: flex;
+                gap: 10px;
+              }
+        
+              .tarjeta-tarea button {
+                border: none;
+                padding: 8px 15px;
+                cursor: pointer;
+                border-radius: 5px;
+                font-size: 14px;
+                transition: background-color 0.3s ease;
+              }
+    
+              .btn-eliminar {
+                background-color: #dc3545;
+                color: white;
+              }
+    
+              .btn-completar {
+                background-color: #28a745;
+                color: white;
+              }
+    
+              .btn-editar {
+                background-color: #007bff;
+                color: white;
+              }
+        
+              .tarjeta-tarea button:hover {
+                opacity: 0.8;
+              }
+        
+              .tarjeta-tarea:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+              }
+    
+              .completada {
+                text-decoration: line-through;
+                opacity: 0.5;
+              }
+            `;
+
+    const styleElement = document.createElement("style");
+    styleElement.textContent = styles;
+    document.head.appendChild(styleElement);
+  });
+</script>
+
+<style>
+  div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 {
+    text-align: center;
+  }
+  #tareaInput {
+    display: none;
+  }
+</style>
